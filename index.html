@@ -4961,7 +4961,12 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
             pushToSupabase();
 
-            if (!isCorrect) showWrongModal(current.answers[current.correctIndex], current.answers[answerIndex] || '');
+            if (isCorrect) {
+                nextQuestion();
+                return;
+            }
+
+            showWrongModal(current.answers[current.correctIndex], current.answers[answerIndex] || '');
             renderQuiz();
         }
 
