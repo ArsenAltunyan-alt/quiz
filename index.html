@@ -4962,7 +4962,8 @@
             pushToSupabase();
 
             if (isCorrect) {
-                nextQuestion();
+                renderQuiz();
+                setTimeout(nextQuestion, 550);
                 return;
             }
 
