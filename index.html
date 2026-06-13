@@ -348,6 +348,31 @@
             margin-top: 22px;
         }
 
+        .jump-control {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .jump-control label {
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .jump-control select {
+            min-height: 36px;
+            width: min(260px, 100%);
+            border: 2px solid var(--accent-color);
+            background-color: var(--panel-soft);
+            color: var(--text-main);
+            padding: 0 10px;
+            outline: none;
+            font-size: 14px;
+        }
+
         .card-shell {
             min-height: 290px;
             display: grid;
@@ -607,7 +632,7 @@
                     </span>
                 </button>
                 <button class="menu-button" type="button" data-view="cardsView">
-                    <span class="menu-mark">C</span>
+                    <span class="menu-mark">K</span>
                     <span class="menu-copy">
                         <span class="menu-title">Картки</span>
                         <span class="menu-note">Перевертай картки й відмічай те, що вже знаєш.</span>
@@ -4855,6 +4880,11 @@
             renderWrongAnswers();
         }
 
+        function shortLabel(value) {
+            const text = String(value || '').replace(/\s+/g, ' ').trim();
+            return text.length > 36 ? `${text.slice(0, 36)}...` : text;
+        }
+
         function startQuiz() {
             quizSession = {
                 index: 0,
@@ -4919,11 +4949,22 @@
                     <button class="action-button" type="button" id="nextQuestionBtn">${quizSession.index === total - 1 ? 'Завершити' : 'Наступний'}</button>
                     <button class="ghost-button" type="button" id="shuffleQuizBtn">Перемішати тест</button>
                 </div>
+                <div class="jump-control">
+                    <label for="quizJumpSelect">Почати з</label>
+                    <select id="quizJumpSelect">
+                        ${quizSession.order.map((questionItemIndex, sessionIndex) => `
+                            <option value="${sessionIndex}" ${sessionIndex === quizSession.index ? 'selected' : ''}>
+                                ${sessionIndex + 1}. ${escapeHtml(shortLabel(state.questions[questionItemIndex]?.question || ''))}
+                            </option>
+                        `).join('')}
+                    </select>
+                </div>
             `;
 
             content.querySelectorAll('[data-answer]').forEach((button) => {
                 button.addEventListener('click', () => answerQuestion(Number(button.dataset.answer)));
             });
+            document.getElementById('quizJumpSelect').addEventListener('change', jumpQuestion);
             document.getElementById('prevQuestionBtn').addEventListener('click', previousQuestion);
             document.getElementById('nextQuestionBtn').addEventListener('click', nextQuestion);
             document.getElementById('shuffleQuizBtn').addEventListener('click', shuffleQuiz);
@@ -4985,6 +5026,11 @@
         function previousQuestion() {
             if (quizSession.index <= 0) return;
             quizSession.index -= 1;
+            renderQuiz();
+        }
+
+        function jumpQuestion(event) {
+            quizSession.index = Number(event.target.value) || 0;
             renderQuiz();
         }
 
@@ -5058,6 +5104,16 @@
                     <button class="action-button" type="button" id="knownCardBtn">${isKnown ? 'Вже знаю' : 'Знаю'}</button>
                     <button class="ghost-button" type="button" id="nextCardBtn">Далі</button>
                 </div>
+                <div class="jump-control">
+                    <label for="cardJumpSelect">Почати з</label>
+                    <select id="cardJumpSelect">
+                        ${state.cards.map((item, index) => `
+                            <option value="${index}" ${index === cardSession.index ? 'selected' : ''}>
+                                ${index + 1}. ${escapeHtml(shortLabel(item.front))}
+                            </option>
+                        `).join('')}
+                    </select>
+                </div>
                 <p class="status-line">Натисни на картку, щоб перевернути. Відомо: ${state.progress.knownCards.length}/${state.cards.length}</p>
             `;
 
@@ -5065,6 +5121,7 @@
             document.getElementById('flashCard').addEventListener('keydown', (event) => {
                 if (event.key === 'Enter' || event.key === ' ') flipCard();
             });
+            document.getElementById('cardJumpSelect').addEventListener('change', jumpCard);
             document.getElementById('prevCardBtn').addEventListener('click', () => moveCard(-1));
             document.getElementById('nextCardBtn').addEventListener('click', () => moveCard(1));
             document.getElementById('knownCardBtn').addEventListener('click', markKnownCard);
@@ -5077,6 +5134,12 @@
 
         function moveCard(direction) {
             cardSession.index = (cardSession.index + direction + state.cards.length) % state.cards.length;
+            cardSession.flipped = false;
+            renderCards();
+        }
+
+        function jumpCard(event) {
+            cardSession.index = Number(event.target.value) || 0;
             cardSession.flipped = false;
             renderCards();
         }
