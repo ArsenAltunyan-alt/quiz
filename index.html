@@ -4889,7 +4889,29 @@
             quizSession = {
                 index: 0,
                 order: state.questions.map((_, index) => index),
-                answers: Array(state.questions.length).fill(null)
+                answers: Array(state.questions.length).fill(null),
+                mode: 'all'
+            };
+            showView('quizView');
+            renderQuiz();
+        }
+
+        function startWrongQuiz() {
+            const wrongQuestionIds = new Set(state.progress.wrongAnswers.map((item) => item.questionId));
+            const order = state.questions
+                .map((question, index) => wrongQuestionIds.has(question.id) ? index : -1)
+                .filter((index) => index >= 0);
+
+            if (!order.length) {
+                renderWrongAnswers();
+                return;
+            }
+
+            quizSession = {
+                index: 0,
+                order,
+                answers: Array(order.length).fill(null),
+                mode: 'wrong'
             };
             showView('quizView');
             renderQuiz();
@@ -4897,7 +4919,7 @@
 
         function renderQuiz() {
             const content = document.getElementById('quizContent');
-            const total = state.questions.length;
+            const total = quizSession.order.length;
 
             if (!total) {
                 document.getElementById('questionNumber').textContent = 'Питань немає';
@@ -4987,6 +5009,9 @@
 
             if (isCorrect) {
                 state.progress.totalCorrect += 1;
+                if (quizSession.mode === 'wrong') {
+                    state.progress.wrongAnswers = state.progress.wrongAnswers.filter((item) => item.questionId !== current.id);
+                }
             } else {
                 rememberWrongAnswer(current, answerIndex);
             }
@@ -5013,8 +5038,9 @@
         }
 
         function nextQuestion() {
-            if (quizSession.index >= state.questions.length - 1) {
-                quizSession.index = state.questions.length;
+            const total = quizSession.order.length;
+            if (quizSession.index >= total - 1) {
+                quizSession.index = total;
                 renderQuiz();
                 return;
             }
@@ -5035,9 +5061,9 @@
         }
 
         function shuffleQuiz() {
-            quizSession.order = shuffleArray(state.questions.map((_, index) => index));
+            quizSession.order = shuffleArray(quizSession.order);
             quizSession.index = 0;
-            quizSession.answers = Array(state.questions.length).fill(null);
+            quizSession.answers = Array(quizSession.order.length).fill(null);
             renderQuiz();
         }
 
@@ -5163,6 +5189,9 @@
             }
 
             content.innerHTML = `
+                <div class="actions-row">
+                    <button class="action-button" type="button" id="startWrongQuizBtn">Пройти тест</button>
+                </div>
                 <div class="wrong-list">
                     ${wrong.map((item) => `
                         <article class="wrong-item">
@@ -5173,6 +5202,8 @@
                     `).join('')}
                 </div>
             `;
+
+            document.getElementById('startWrongQuizBtn').addEventListener('click', startWrongQuiz);
         }
 
         function clearWrongAnswers() {
